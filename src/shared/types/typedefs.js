@@ -4,8 +4,17 @@
  */
 
 /**
+ * @typedef {Object} Tree
+ * @property {string} id
+ * @property {string} name
+ * @property {string|null} createdAt
+ * @property {number} memberCount  aggregate, list view only
+ */
+
+/**
  * @typedef {Object} Member
  * @property {string} id
+ * @property {string} treeId
  * @property {string} name
  * @property {'male'|'female'|'other'|null} gender
  * @property {string|null} photoUrl
@@ -24,6 +33,7 @@
  *
  * @typedef {Object} Relationship
  * @property {string} id
+ * @property {string} treeId
  * @property {string} fromId
  * @property {string} toId
  * @property {'parent'|'spouse'|'adopted'|'guardian'} type

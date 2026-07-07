@@ -1,6 +1,7 @@
 import L from 'leaflet'
 import { watch, watchEffect } from 'vue'
 import { useFamilyStore } from '@/features/family/store/familyStore'
+import { useSettingsStore } from '@/features/settings/store/settingsStore'
 import { useMapStore } from '../store/mapStore'
 import { createMemberIcon } from '../services/leafletRenderer'
 import { toLatLng, fromLatLng } from '../utils/graphCoords'
@@ -18,6 +19,7 @@ import { toLatLng, fromLatLng } from '../utils/graphCoords'
 export function useMarkers(map) {
   const family = useFamilyStore()
   const mapStore = useMapStore()
+  const settings = useSettingsStore()
 
   /** @type {Map<string, L.Marker>} */
   const markers = new Map()
@@ -34,7 +36,7 @@ export function useMarkers(map) {
 
   function createMarker(member) {
     const marker = L.marker(toLatLng(member.posX, member.posY), {
-      icon: createMemberIcon(member, markerState(member)),
+      icon: createMemberIcon(member, markerState(member), settings.styles.node),
       draggable: true,
       keyboard: false,
     })
@@ -70,7 +72,7 @@ export function useMarkers(map) {
         layer.addLayer(marker)
       } else if (member.id !== draggingId) {
         existing.setLatLng(toLatLng(member.posX, member.posY))
-        existing.setIcon(createMemberIcon(member, markerState(member)))
+        existing.setIcon(createMemberIcon(member, markerState(member), settings.styles.node))
       }
     }
     // removals

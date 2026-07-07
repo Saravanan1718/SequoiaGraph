@@ -3,9 +3,12 @@ import { relationshipFromRow, relationshipToRow } from './mappers'
 import { localDb } from './localDb'
 
 /** @returns {Promise<import('@/shared/types/typedefs').Relationship[]>} */
-export async function fetchRelationships() {
-  if (!supabase) return localDb.listRelationships()
-  const { data, error } = await supabase.from('relationships').select('*')
+export async function fetchRelationships(treeId) {
+  if (!supabase) return localDb.listRelationships(treeId)
+  const { data, error } = await supabase
+    .from('relationships')
+    .select('*')
+    .eq('tree_id', treeId)
   if (error) throw error
   return data.map(relationshipFromRow)
 }

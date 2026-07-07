@@ -3,9 +3,12 @@ import { memberFromRow, memberToRow } from './mappers'
 import { localDb } from './localDb'
 
 /** @returns {Promise<import('@/shared/types/typedefs').Member[]>} */
-export async function fetchMembers() {
-  if (!supabase) return localDb.listMembers()
-  const { data, error } = await supabase.from('members').select('*')
+export async function fetchMembers(treeId) {
+  if (!supabase) return localDb.listMembers(treeId)
+  const { data, error } = await supabase
+    .from('members')
+    .select('*')
+    .eq('tree_id', treeId)
   if (error) throw error
   return data.map(memberFromRow)
 }

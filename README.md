@@ -19,8 +19,14 @@ localStorage) so you can try it immediately.
 ## Supabase setup
 
 1. Create a project at supabase.com.
-2. Run [supabase/schema.sql](supabase/schema.sql) in the SQL editor.
-3. Copy `.env.example` to `.env` and fill in your URL + anon key.
+2. Make sure Email auth is enabled (Authentication → Providers → Email).
+3. Run [supabase/schema.sql](supabase/schema.sql) in the SQL editor.
+4. Copy `.env.example` to `.env` and fill in your URL + anon key.
+
+With Supabase configured the app requires sign-in (email/password). Each
+account gets its own private tree — Row Level Security guarantees users can
+only read and write rows where `owner_id = auth.uid()`. Sign out lives in
+the appearance-settings dialog (gear icon).
 
 ## Data model
 
@@ -43,6 +49,7 @@ src/
   core/       supabase client, config
   shared/     UI kit, generic composables/utils, JSDoc typedefs
   features/
+    auth/     Supabase Auth: session store, login view (inert in local mode)
     family/   domain: members + relationships (store, services, forms, kinship)
     map/      presentation: Leaflet canvas (markers, edges, selection, layout)
     search/   name search + jump-to

@@ -1,8 +1,19 @@
 /** DB snake_case ↔ app camelCase. The only place both shapes are known. */
 
+export function treeFromRow(row) {
+  return {
+    id: row.id,
+    name: row.name,
+    createdAt: row.created_at ?? null,
+    // populated by the `members(count)` aggregate in the list query
+    memberCount: row.members?.[0]?.count ?? 0,
+  }
+}
+
 export function memberFromRow(row) {
   return {
     id: row.id,
+    treeId: row.tree_id,
     name: row.name,
     gender: row.gender ?? null,
     photoUrl: row.photo_url ?? null,
@@ -18,6 +29,7 @@ export function memberFromRow(row) {
 export function memberToRow(member) {
   return {
     id: member.id,
+    tree_id: member.treeId,
     name: member.name,
     gender: member.gender ?? null,
     photo_url: member.photoUrl ?? null,
@@ -31,9 +43,21 @@ export function memberToRow(member) {
 }
 
 export function relationshipFromRow(row) {
-  return { id: row.id, fromId: row.from_id, toId: row.to_id, type: row.type }
+  return {
+    id: row.id,
+    treeId: row.tree_id,
+    fromId: row.from_id,
+    toId: row.to_id,
+    type: row.type,
+  }
 }
 
 export function relationshipToRow(rel) {
-  return { id: rel.id, from_id: rel.fromId, to_id: rel.toId, type: rel.type }
+  return {
+    id: rel.id,
+    tree_id: rel.treeId,
+    from_id: rel.fromId,
+    to_id: rel.toId,
+    type: rel.type,
+  }
 }

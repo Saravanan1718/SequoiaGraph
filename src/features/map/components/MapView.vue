@@ -2,38 +2,63 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useFamilyStore } from '@/features/family/store/familyStore'
+import { useTreesStore } from '@/features/trees/store/treesStore'
 import { pendingCount, lastError } from '@/features/family/services/saveQueue'
 import { useMapStore } from '../store/mapStore'
 import { useFamilyMap } from '../composables/useFamilyMap'
 import { useMarkers } from '../composables/useMarkers'
 import { useEdges } from '../composables/useEdges'
 import { useAutoFit } from '../composables/useAutoFit'
+import { useAutoPlacement } from '../composables/useAutoPlacement'
 import { spawnPosition } from '../services/layoutEngine'
 import MapControls from './MapControls.vue'
 import SearchBar from '@/features/search/components/SearchBar.vue'
 import MemberDetailPanel from '@/features/family/components/MemberDetailPanel.vue'
 import MemberFormModal from '@/features/family/components/MemberFormModal.vue'
+import ExportModal from './ExportModal.vue'
+import SettingsPanel from '@/features/settings/components/SettingsPanel.vue'
 import BaseButton from '@/shared/components/ui/BaseButton.vue'
 
+const props = defineProps({
+  treeId: { type: String, required: true },
+})
+
 const family = useFamilyStore()
+const treesStore = useTreesStore()
 const mapStore = useMapStore()
 const route = useRoute()
 const router = useRouter()
+
+const treeName = computed(
+  () => treesStore.treeById(props.treeId)?.name ?? 'Family tree',
+)
 
 const container = ref(null)
 const { map, viewCenter } = useFamilyMap(container)
 useMarkers(map)
 useEdges(map)
 const { fitAll } = useAutoFit(map)
+const { arrangeAll } = useAutoPlacement()
+
+function onArrange() {
+  arrangeAll()
+  fitAll()
+}
 
 const formOpen = ref(false)
+const exportOpen = ref(false)
+const settingsOpen = ref(false)
 const editingMember = ref(null) // null → create mode
 
 const saving = computed(() => pendingCount.value > 0)
 const saveError = computed(() => lastError.value !== null)
 
+// tree names for the header when landing directly on /tree/:id
+if (treesStore.loadStatus === 'idle') treesStore.fetchAll()
+
 // initial load → fit tree, honor ?member= deep link
-family.fetchAll().then(() => {
+mapStore.clearSelection()
+family.fetchAll(props.treeId).then(() => {
   const deepLinkId = route.query.member
   if (deepLinkId && family.memberById(deepLinkId)) {
     mapStore.jumpTo(deepLinkId)
@@ -78,9 +103,16 @@ function getSpawnPosition() {
       <div class="flex min-w-0 flex-1 flex-col">
       <header class="flex items-start justify-between gap-3 p-4">
         <div class="flex items-center gap-3">
-          <h1 class="pointer-events-auto select-none rounded-full bg-white/95 px-4 py-2 text-sm font-bold tracking-tight shadow-md backdrop-blur dark:bg-slate-800/95">
-            Kin<span class="text-indigo-500">Graph</span>
-          </h1>
+          <button
+            class="pointer-events-auto flex items-center gap-1.5 rounded-full bg-white/95 py-2 pl-3 pr-4 text-sm font-bold tracking-tight shadow-md backdrop-blur transition hover:bg-slate-50 dark:bg-slate-800/95 dark:hover:bg-slate-700"
+            title="Back to your trees"
+            @click="router.push({ name: 'trees' })"
+          >
+            <svg class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
+            </svg>
+            <span class="max-w-40 truncate">{{ treeName }}</span>
+          </button>
           <SearchBar class="hidden sm:block" />
         </div>
         <MapControls
@@ -90,6 +122,9 @@ function getSpawnPosition() {
           @zoom-in="map?.zoomIn()"
           @zoom-out="map?.zoomOut()"
           @fit="fitAll()"
+          @arrange="onArrange"
+          @export="exportOpen = true"
+          @settings="settingsOpen = true"
         />
       </header>
 
@@ -148,5 +183,7 @@ function getSpawnPosition() {
       @close="formOpen = false"
       @saved="onSaved"
     />
+    <ExportModal :open="exportOpen" @close="exportOpen = false" />
+    <SettingsPanel :open="settingsOpen" @close="settingsOpen = false" />
   </div>
 </template>

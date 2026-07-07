@@ -1,5 +1,6 @@
 import L from 'leaflet'
 import { colorFromName, initials } from '@/shared/utils/color'
+import { DEFAULT_STYLES } from '@/features/settings/store/settingsStore'
 
 /** Escape user text before it enters Leaflet's HTML-string divIcon. */
 function escapeHtml(text) {
@@ -8,12 +9,19 @@ function escapeHtml(text) {
   return div.innerHTML
 }
 
+const ICON_WIDTH = 120
+
 /**
  * divIcon for a member node. Pure factory — no map or store knowledge.
  * @param {import('@/shared/types/typedefs').Member} member
  * @param {{selected?: boolean, dimmed?: boolean}} state
+ * @param {{size: number, ringColor: string, showLabels: boolean}} nodeStyle
  */
-export function createMemberIcon(member, { selected = false, dimmed = false } = {}) {
+export function createMemberIcon(
+  member,
+  { selected = false, dimmed = false } = {},
+  nodeStyle = DEFAULT_STYLES.node,
+) {
   const classes = [
     'kin-marker',
     selected && 'kin-marker--selected',
@@ -26,33 +34,58 @@ export function createMemberIcon(member, { selected = false, dimmed = false } = 
     ? `<img src="${escapeHtml(member.photoUrl)}" alt="" draggable="false" />`
     : escapeHtml(initials(member.name))
 
-  const bg = member.photoUrl ? '' : `style="background:${colorFromName(member.name)}"`
+  const { size, ringColor, showLabels } = nodeStyle
+  const avatarStyle = [
+    `width:${size}px`,
+    `height:${size}px`,
+    `border-color:${ringColor}`,
+    `font-size:${Math.max(11, size * 0.3)}px`,
+    member.photoUrl ? '' : `background:${colorFromName(member.name)}`,
+  ]
+    .filter(Boolean)
+    .join(';')
+
+  const label = showLabels
+    ? `<div class="kin-marker__label">${escapeHtml(member.name)}</div>`
+    : ''
 
   return L.divIcon({
     className: '', // suppress leaflet's default white box
-    iconSize: [96, 72],
-    iconAnchor: [48, 24], // avatar center = the member's graph position
+    iconSize: [ICON_WIDTH, size + (showLabels ? 26 : 0)],
+    iconAnchor: [ICON_WIDTH / 2, size / 2], // avatar center = graph position
     html: `
       <div class="${classes}">
-        <div class="kin-marker__avatar" ${bg}>${avatar}</div>
-        <div class="kin-marker__label">${escapeHtml(member.name)}</div>
+        <div class="kin-marker__avatar" style="${avatarStyle}">${avatar}</div>
+        ${label}
       </div>`,
   })
 }
 
-/** Polyline style per relationship type. */
-export function edgeStyle(type, { highlighted = false, dimmed = false } = {}) {
-  const base = {
-    parent: { color: '#6366f1', weight: 2.5, dashArray: null },
-    adopted: { color: '#6366f1', weight: 2.5, dashArray: '6 6' },
-    guardian: { color: '#94a3b8', weight: 2, dashArray: '2 6' },
-    spouse: { color: '#ec4899', weight: 2.5, dashArray: null },
-  }[type] ?? { color: '#94a3b8', weight: 2, dashArray: null }
+const EDGE_SHAPES = {
+  parent: { weight: 2.5, dashArray: null },
+  adopted: { weight: 2.5, dashArray: '6 6' },
+  guardian: { weight: 2, dashArray: '2 6' },
+  spouse: { weight: 3, dashArray: null },
+}
 
+/**
+ * Polyline style per relationship type.
+ * @param {string} type
+ * @param {{highlighted?: boolean, dimmed?: boolean}} state
+ * @param {Record<string, string>} colors per-type color overrides
+ */
+export function edgeStyle(
+  type,
+  { highlighted = false, dimmed = false } = {},
+  colors = DEFAULT_STYLES.edges,
+) {
+  const shape = EDGE_SHAPES[type] ?? { weight: 2, dashArray: null }
   return {
-    ...base,
+    ...shape,
+    color: colors[type] ?? '#94a3b8',
     opacity: dimmed ? 0.12 : highlighted ? 0.95 : 0.55,
-    weight: highlighted ? base.weight + 1 : base.weight,
+    weight: highlighted ? shape.weight + 1 : shape.weight,
+    lineJoin: 'round',
     interactive: false,
   }
 }

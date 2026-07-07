@@ -16,6 +16,8 @@ export const useFamilyStore = defineStore('family', () => {
   /** @type {import('vue').ShallowRef<Map<string, import('@/shared/types/typedefs').Relationship>>} */
   const relationships = shallowRef(new Map())
   const loadStatus = ref('idle') // idle | loading | ready | error
+  /** The tree all reads/writes are scoped to (set by fetchAll). */
+  const activeTreeId = ref(null)
 
   const membersArray = computed(() => [...members.value.values()])
   const relationshipsArray = computed(() => [...relationships.value.values()])
@@ -32,12 +34,13 @@ export const useFamilyStore = defineStore('family', () => {
   const relationshipsOf = (id) =>
     relationshipsArray.value.filter((r) => r.fromId === id || r.toId === id)
 
-  async function fetchAll() {
+  async function fetchAll(treeId) {
+    activeTreeId.value = treeId
     loadStatus.value = 'loading'
     try {
       const [memberList, relList] = await Promise.all([
-        memberService.fetchMembers(),
-        relationshipService.fetchRelationships(),
+        memberService.fetchMembers(treeId),
+        relationshipService.fetchRelationships(treeId),
       ])
       members.value = new Map(memberList.map((m) => [m.id, m]))
       relationships.value = new Map(relList.map((r) => [r.id, r]))
@@ -52,6 +55,7 @@ export const useFamilyStore = defineStore('family', () => {
   function addMember(draft) {
     const member = {
       id: newId(),
+      treeId: activeTreeId.value,
       name: '',
       gender: null,
       photoUrl: null,
@@ -100,11 +104,19 @@ export const useFamilyStore = defineStore('family', () => {
   function addRelationship(edge) {
     const error = kinship.validateEdge(edge, relationshipsArray.value)
     if (error) return error
-    const rel = { id: newId(), ...edge }
+    const rel = { id: newId(), treeId: activeTreeId.value, ...edge }
     relationships.value.set(rel.id, rel)
     triggerRef(relationships)
     saveQueue.run(() => relationshipService.insertRelationship(rel))
     return null
+  }
+
+  /** Drop all in-memory data (used on sign-out). */
+  function clear() {
+    members.value = new Map()
+    relationships.value = new Map()
+    loadStatus.value = 'idle'
+    activeTreeId.value = null
   }
 
   function removeRelationship(id) {
@@ -133,5 +145,6 @@ export const useFamilyStore = defineStore('family', () => {
     deleteMember,
     addRelationship,
     removeRelationship,
+    clear,
   }
 })

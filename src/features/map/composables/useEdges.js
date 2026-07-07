@@ -1,20 +1,23 @@
 import L from 'leaflet'
 import { watchEffect } from 'vue'
 import { useFamilyStore } from '@/features/family/store/familyStore'
+import { useSettingsStore } from '@/features/settings/store/settingsStore'
 import { useMapStore } from '../store/mapStore'
 import { edgeStyle } from '../services/leafletRenderer'
+import { computeEdgePaths } from '../utils/edgeRouting'
 import { toLatLng } from '../utils/graphCoords'
 
 /**
- * Syncs relationships → polylines on a shared canvas renderer.
- * Rebuilt reactively when relationships, member positions, or the
- * selection highlight change. Canvas keeps thousands of lines cheap.
+ * Draws genealogy connectors (couple bars, ┬-drops, elbows) as polylines on
+ * a shared canvas renderer. Geometry comes from edgeRouting; rebuilt
+ * reactively on relationship, position, highlight, or style changes.
  *
  * @param {import('vue').ShallowRef<L.Map|null>} map
  */
 export function useEdges(map) {
   const family = useFamilyStore()
   const mapStore = useMapStore()
+  const settings = useSettingsStore()
 
   const renderer = L.canvas({ padding: 0.5 })
   const layer = L.layerGroup()
@@ -25,20 +28,24 @@ export function useEdges(map) {
 
     layer.clearLayers()
     const highlighted = mapStore.highlightedIds
+    const paths = computeEdgePaths(family.membersArray, family.relationshipsArray)
 
-    for (const rel of family.relationshipsArray) {
-      const from = family.memberById(rel.fromId)
-      const to = family.memberById(rel.toId)
-      if (!from || !to) continue
-
+    for (const path of paths) {
       const isHighlighted =
-        highlighted !== null && highlighted.has(rel.fromId) && highlighted.has(rel.toId)
+        highlighted !== null && path.memberIds.every((id) => highlighted.has(id))
       const isDimmed = highlighted !== null && !isHighlighted
 
       layer.addLayer(
         L.polyline(
-          [toLatLng(from.posX, from.posY), toLatLng(to.posX, to.posY)],
-          { renderer, ...edgeStyle(rel.type, { highlighted: isHighlighted, dimmed: isDimmed }) },
+          path.points.map((p) => toLatLng(p.x, p.y)),
+          {
+            renderer,
+            ...edgeStyle(
+              path.type,
+              { highlighted: isHighlighted, dimmed: isDimmed },
+              settings.styles.edges,
+            ),
+          },
         ),
       )
     }
