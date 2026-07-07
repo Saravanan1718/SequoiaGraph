@@ -1,0 +1,58 @@
+<script setup>
+import { onBeforeUnmount, watch } from 'vue'
+
+const props = defineProps({
+  open: { type: Boolean, required: true },
+  title: { type: String, default: '' },
+})
+const emit = defineEmits(['close'])
+
+function onKeydown(e) {
+  if (e.key === 'Escape') emit('close')
+}
+watch(
+  () => props.open,
+  (open) => {
+    if (open) window.addEventListener('keydown', onKeydown)
+    else window.removeEventListener('keydown', onKeydown)
+  },
+)
+onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
+</script>
+
+<template>
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-150 ease-out"
+      enter-from-class="opacity-0"
+      leave-active-class="transition duration-100 ease-in"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="open"
+        class="fixed inset-0 z-1100 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+        @click.self="emit('close')"
+      >
+        <div
+          class="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl dark:bg-slate-900 dark:ring-1 dark:ring-slate-700"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div class="mb-4 flex items-center justify-between">
+            <h2 class="text-base font-semibold">{{ title }}</h2>
+            <button
+              class="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800"
+              aria-label="Close"
+              @click="emit('close')"
+            >
+              <svg class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                <path d="M6.28 5.22a.75.75 0 0 0-1.06 1.06L8.94 10l-3.72 3.72a.75.75 0 1 0 1.06 1.06L10 11.06l3.72 3.72a.75.75 0 1 0 1.06-1.06L11.06 10l3.72-3.72a.75.75 0 0 0-1.06-1.06L10 8.94 6.28 5.22Z" />
+              </svg>
+            </button>
+          </div>
+          <slot />
+        </div>
+      </div>
+    </Transition>
+  </Teleport>
+</template>

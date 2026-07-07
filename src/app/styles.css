@@ -1,0 +1,61 @@
+@import 'tailwindcss';
+
+/* Class-based dark mode: settingsStore toggles `.dark` on <html> */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+}
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+/* Leaflet as graph canvas: neutral background, no attribution flourish */
+.leaflet-container {
+  background: transparent;
+  font: inherit;
+}
+
+/* Member marker (divIcon) — Leaflet strips Vue scoping, so styled globally */
+.kin-marker {
+  @apply flex flex-col items-center gap-1 cursor-grab select-none;
+  transition: transform 150ms ease, opacity 200ms ease;
+}
+.kin-marker__avatar {
+  @apply flex items-center justify-center rounded-full border-2 border-white
+    bg-slate-400 text-white font-semibold shadow-md overflow-hidden
+    dark:border-slate-700;
+  width: 48px;
+  height: 48px;
+}
+.kin-marker__avatar img {
+  @apply h-full w-full object-cover;
+}
+.kin-marker__label {
+  @apply max-w-28 truncate rounded-full bg-white/90 px-2 py-0.5 text-xs
+    font-medium text-slate-700 shadow-sm
+    dark:bg-slate-800/90 dark:text-slate-200;
+}
+.kin-marker--selected .kin-marker__avatar {
+  @apply border-indigo-500 dark:border-indigo-400;
+  animation: kin-pulse 1.6s ease-in-out infinite;
+}
+.kin-marker--dimmed {
+  opacity: 0.25;
+}
+.kin-marker--dragging {
+  @apply cursor-grabbing;
+}
+
+@keyframes kin-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgb(99 102 241 / 0.5);
+  }
+  50% {
+    box-shadow: 0 0 0 10px rgb(99 102 241 / 0);
+  }
+}
