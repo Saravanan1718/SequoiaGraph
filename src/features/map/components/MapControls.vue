@@ -18,11 +18,11 @@ const emit = defineEmits([
 const settings = useSettingsStore()
 
 const buttonClass =
-  'pointer-events-auto flex h-10 w-10 items-center justify-center rounded-xl bg-white/95 text-slate-600 shadow-md ring-1 ring-slate-200 backdrop-blur transition hover:bg-slate-50 hover:text-slate-900 dark:bg-slate-800/95 dark:text-slate-300 dark:ring-slate-600 dark:hover:bg-slate-700'
+  'pointer-events-auto flex h-9 w-9 touch-manipulation items-center justify-center rounded-xl bg-white/95 text-slate-600 shadow-md ring-1 ring-slate-200 backdrop-blur transition duration-100 hover:bg-slate-50 hover:text-slate-900 active:scale-95 active:bg-slate-200 sm:h-10 sm:w-10 dark:bg-slate-800/95 dark:text-slate-300 dark:ring-slate-600 dark:hover:bg-slate-700 dark:active:bg-slate-600'
 </script>
 
 <template>
-  <div class="flex flex-col items-end gap-2">
+  <div class="flex flex-col items-end gap-1.5 sm:gap-2">
     <!-- save status -->
     <div
       v-if="saving || saveError"

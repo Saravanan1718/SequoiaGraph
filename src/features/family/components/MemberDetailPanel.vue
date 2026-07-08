@@ -47,8 +47,9 @@ function onDelete() {
 </script>
 
 <template>
+  <!-- side panel on desktop, bottom sheet on phones -->
   <aside
-    class="pointer-events-auto flex h-full w-80 max-w-full flex-col gap-4 overflow-y-auto bg-white/95 p-5 shadow-xl backdrop-blur dark:bg-slate-900/95 dark:ring-1 dark:ring-slate-700"
+    class="pointer-events-auto flex flex-col gap-4 overflow-y-auto bg-white/95 p-5 shadow-xl backdrop-blur max-sm:max-h-[55dvh] max-sm:w-full max-sm:rounded-t-2xl max-sm:pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:h-full sm:w-80 dark:bg-slate-900/95 dark:ring-1 dark:ring-slate-700"
   >
     <div class="flex items-start justify-between">
       <div class="flex items-center gap-3">

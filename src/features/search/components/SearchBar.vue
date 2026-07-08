@@ -22,7 +22,7 @@ const focused = ref(false)
         v-model="query"
         type="search"
         placeholder="Search family…"
-        class="w-full rounded-full border-0 bg-white/95 py-2 pl-9 pr-4 text-sm shadow-md ring-1 ring-slate-200 backdrop-blur placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800/95 dark:text-slate-100 dark:ring-slate-600"
+        class="w-full rounded-full border-0 bg-white/95 py-2 pl-9 pr-4 text-base shadow-md sm:text-sm ring-1 ring-slate-200 backdrop-blur placeholder:text-slate-400 focus:ring-2 focus:ring-indigo-500 dark:bg-slate-800/95 dark:text-slate-100 dark:ring-slate-600"
         @focus="focused = true"
         @blur="focused = false"
       />

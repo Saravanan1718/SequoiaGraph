@@ -99,7 +99,7 @@ function getSpawnPosition() {
     <div ref="container" class="absolute inset-0 z-0" />
 
     <!-- overlay UI; pointer-events re-enabled per element -->
-    <div class="pointer-events-none absolute inset-0 z-1000 flex">
+    <div class="pointer-events-none absolute inset-0 z-1000 flex max-sm:flex-col">
       <div class="flex min-w-0 flex-1 flex-col">
       <header class="flex items-start justify-between gap-3 p-4">
         <div class="flex items-center gap-3">
@@ -157,12 +157,12 @@ function getSpawnPosition() {
       </div>
       </div>
 
-      <!-- detail panel: flex sibling so it never covers the toolbar -->
+      <!-- detail panel: flex sibling (right on desktop, bottom sheet on phones) -->
       <Transition
         enter-active-class="transition duration-200 ease-out"
-        enter-from-class="translate-x-full"
+        enter-from-class="max-sm:translate-y-full sm:translate-x-full"
         leave-active-class="transition duration-150 ease-in"
-        leave-to-class="translate-x-full"
+        leave-to-class="max-sm:translate-y-full sm:translate-x-full"
       >
         <MemberDetailPanel
           v-if="mapStore.selectedMember"

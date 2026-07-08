@@ -28,13 +28,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
       leave-active-class="transition duration-100 ease-in"
       leave-to-class="opacity-0"
     >
+      <!-- centered dialog on desktop, bottom sheet on phones -->
       <div
         v-if="open"
-        class="fixed inset-0 z-1100 flex items-center justify-center bg-slate-900/50 p-4 backdrop-blur-sm"
+        class="fixed inset-0 z-1100 flex items-end justify-center bg-slate-900/50 backdrop-blur-sm max-sm:p-0 sm:items-center sm:p-4"
         @click.self="emit('close')"
       >
         <div
-          class="w-full max-w-md rounded-2xl bg-white p-5 shadow-xl dark:bg-slate-900 dark:ring-1 dark:ring-slate-700"
+          class="max-h-[88dvh] w-full max-w-md overflow-y-auto bg-white p-5 shadow-xl max-sm:rounded-t-2xl max-sm:pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-2xl dark:bg-slate-900 dark:ring-1 dark:ring-slate-700"
           role="dialog"
           aria-modal="true"
         >
