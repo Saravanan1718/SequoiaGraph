@@ -92,3 +92,24 @@ create policy "own relationships" on relationships
   for all
   using (auth.uid() = owner_id)
   with check (auth.uid() = owner_id);
+
+-- ---------------------------------------------------------------------------
+-- Member photos storage.
+-- The app uploads member photos to a public bucket named 'member-photos'
+-- (see src/features/family/services/photoService.js). Without Supabase this
+-- falls back to inline data URLs, so this section is only needed in cloud mode.
+
+insert into storage.buckets (id, name, public)
+values ('member-photos', 'member-photos', true)
+on conflict (id) do nothing;
+
+-- Anyone can read (bucket is public); authenticated users manage their uploads.
+drop policy if exists "member photos readable" on storage.objects;
+create policy "member photos readable" on storage.objects
+  for select using (bucket_id = 'member-photos');
+
+drop policy if exists "member photos writable" on storage.objects;
+create policy "member photos writable" on storage.objects
+  for all to authenticated
+  using (bucket_id = 'member-photos')
+  with check (bucket_id = 'member-photos');

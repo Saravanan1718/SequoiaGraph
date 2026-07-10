@@ -1,11 +1,12 @@
 <script setup>
-import { watch } from 'vue'
+import { ref, watch } from 'vue'
 import BaseModal from '@/shared/components/ui/BaseModal.vue'
 import BaseButton from '@/shared/components/ui/BaseButton.vue'
 import BaseField from '@/shared/components/ui/BaseField.vue'
 import BaseInput from '@/shared/components/ui/BaseInput.vue'
 import BaseSelect from '@/shared/components/ui/BaseSelect.vue'
 import BaseTextarea from '@/shared/components/ui/BaseTextarea.vue'
+import MediaUpload from './MediaUpload.vue'
 import { useMemberForm } from '../composables/useMemberForm'
 
 const props = defineProps({
@@ -17,9 +18,10 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'saved'])
 
-const { form, errors, isEditing, reset, loadMember, submit } = useMemberForm(
-  () => props.getSpawnPosition?.() ?? { x: 0, y: 0 },
-)
+const { form, errors, isEditing, reset, loadMember, submit, setPendingPhoto } =
+  useMemberForm(() => props.getSpawnPosition?.() ?? { x: 0, y: 0 })
+
+const saving = ref(false)
 
 watch(
   () => props.open,
@@ -36,11 +38,17 @@ const genderOptions = [
   { value: 'other', label: 'Other' },
 ]
 
-function onSubmit() {
-  const saved = submit()
-  if (saved) {
-    emit('saved', saved)
-    emit('close')
+async function onSubmit() {
+  if (saving.value) return
+  saving.value = true
+  try {
+    const saved = await submit()
+    if (saved) {
+      emit('saved', saved)
+      emit('close')
+    }
+  } finally {
+    saving.value = false
   }
 }
 </script>
@@ -70,8 +78,12 @@ function onSubmit() {
         </BaseField>
       </div>
 
-      <BaseField label="Photo URL">
-        <BaseInput v-model="form.photoUrl" type="url" placeholder="https://…" />
+      <BaseField label="Photo">
+        <MediaUpload
+          v-model="form.photoUrl"
+          :name="form.name"
+          @file-selected="setPendingPhoto"
+        />
       </BaseField>
 
       <BaseField label="Notes">
@@ -79,8 +91,10 @@ function onSubmit() {
       </BaseField>
 
       <div class="flex justify-end gap-2 pt-2">
-        <BaseButton variant="secondary" @click="emit('close')">Cancel</BaseButton>
-        <BaseButton type="submit">{{ isEditing ? 'Save changes' : 'Add member' }}</BaseButton>
+        <BaseButton variant="secondary" :disabled="saving" @click="emit('close')">Cancel</BaseButton>
+        <BaseButton type="submit" :disabled="saving">
+          {{ saving ? 'Saving…' : isEditing ? 'Save changes' : 'Add member' }}
+        </BaseButton>
       </div>
     </form>
   </BaseModal>
