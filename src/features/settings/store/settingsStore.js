@@ -1,8 +1,8 @@
 import { defineStore } from 'pinia'
 import { reactive, ref, watch } from 'vue'
 
-const THEME_KEY = 'kingraph:theme'
-const STYLES_KEY = 'kingraph:styles'
+const THEME_KEY = 'sequoiaroots:theme'
+const STYLES_KEY = 'sequoiaroots:styles'
 
 export const DEFAULT_STYLES = {
   node: {

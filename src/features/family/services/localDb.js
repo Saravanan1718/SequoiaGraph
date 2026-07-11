@@ -3,7 +3,7 @@
  * Implements the same async surface as the Supabase-backed services so the
  * stores never know which backend they are talking to.
  */
-const KEY = 'kingraph:localdb'
+const KEY = 'sequoiaroots:localdb'
 const LEGACY_TREE_ID = 'local-default-tree'
 
 function load() {

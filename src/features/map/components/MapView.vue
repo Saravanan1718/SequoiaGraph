@@ -101,36 +101,32 @@ function getSpawnPosition() {
     <!-- overlay UI; pointer-events re-enabled per element -->
     <div class="pointer-events-none absolute inset-0 z-1000 flex max-sm:flex-col">
       <div class="flex min-w-0 flex-1 flex-col">
-      <header class="flex items-start justify-between gap-3 p-4">
-        <div class="flex items-center gap-3">
-          <button
-            class="pointer-events-auto flex items-center gap-1.5 rounded-full bg-white/95 py-2 pl-3 pr-4 text-sm font-bold tracking-tight shadow-md backdrop-blur transition hover:bg-slate-50 dark:bg-slate-800/95 dark:hover:bg-slate-700"
-            title="Back to your trees"
-            @click="router.push({ name: 'trees' })"
-          >
-            <svg class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
-              <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
-            </svg>
-            <span class="max-w-40 truncate">{{ treeName }}</span>
-          </button>
-          <SearchBar class="hidden sm:block" />
-        </div>
-        <MapControls
-          :saving="saving"
-          :save-error="saveError"
-          @add="openCreate"
-          @zoom-in="map?.zoomIn()"
-          @zoom-out="map?.zoomOut()"
-          @fit="fitAll()"
-          @arrange="onArrange"
-          @export="exportOpen = true"
-          @settings="settingsOpen = true"
-        />
-      </header>
-
-      <div class="px-4 sm:hidden">
-        <SearchBar />
-      </div>
+        <header class="flex items-start justify-between gap-3 p-4">
+          <div class="flex flex-col sm:flex-row items-start sm:items-center gap-3">
+            <button
+              class="pointer-events-auto flex items-center gap-1.5 rounded-full bg-white/95 py-2 pl-3 pr-4 text-sm font-bold tracking-tight shadow-md backdrop-blur transition hover:bg-slate-50 dark:bg-slate-800/95 dark:hover:bg-slate-700"
+              title="Back to your trees"
+              @click="router.push({ name: 'trees' })"
+            >
+              <svg class="h-4 w-4 text-slate-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fill-rule="evenodd" d="M17 10a.75.75 0 0 1-.75.75H5.612l4.158 3.96a.75.75 0 1 1-1.04 1.08l-5.5-5.25a.75.75 0 0 1 0-1.08l5.5-5.25a.75.75 0 1 1 1.04 1.08L5.612 9.25H16.25A.75.75 0 0 1 17 10Z" clip-rule="evenodd" />
+              </svg>
+              <span class="max-w-40 truncate">{{ treeName }}</span>
+            </button>
+            <SearchBar />
+          </div>
+          <MapControls
+            :saving="saving"
+            :save-error="saveError"
+            @add="openCreate"
+            @zoom-in="map?.zoomIn()"
+            @zoom-out="map?.zoomOut()"
+            @fit="fitAll()"
+            @arrange="onArrange"
+            @export="exportOpen = true"
+            @settings="settingsOpen = true"
+          />
+        </header>
 
       <!-- empty state -->
       <div
