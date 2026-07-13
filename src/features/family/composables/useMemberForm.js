@@ -1,4 +1,4 @@
-import { computed, reactive } from 'vue'
+import { computed, reactive, ref } from 'vue'
 import { useFamilyStore } from '../store/familyStore'
 import { uploadMemberPhoto } from '../services/photoService'
 
@@ -24,6 +24,17 @@ export function useMemberForm(getSpawnPosition) {
   let editingId = null
   // A processed image ({ blob, dataUrl }) awaiting persistence, set by MediaUpload.
   let pendingPhoto = null
+  const photoDirty = ref(false)
+  // Serialized form state at last load/reset/save; basis for isDirty.
+  const snapshot = ref('')
+
+  function takeSnapshot() {
+    snapshot.value = JSON.stringify(form)
+    photoDirty.value = false
+  }
+
+  /** True when the form differs from its last loaded/saved state. */
+  const isDirty = computed(() => photoDirty.value || JSON.stringify(form) !== snapshot.value)
 
   function reset() {
     Object.assign(form, emptyForm())
@@ -31,11 +42,13 @@ export function useMemberForm(getSpawnPosition) {
     errors.deathDate = ''
     editingId = null
     pendingPhoto = null
+    takeSnapshot()
   }
 
   /** Register (or clear) a freshly picked photo to persist on submit. */
   function setPendingPhoto(processed) {
     pendingPhoto = processed
+    photoDirty.value = true
   }
 
   function loadMember(member) {
@@ -50,6 +63,7 @@ export function useMemberForm(getSpawnPosition) {
       occupation: member.occupation ?? '',
       notes: member.notes ?? '',
     })
+    takeSnapshot()
   }
 
   const isEditing = computed(() => editingId !== null)
@@ -94,8 +108,9 @@ export function useMemberForm(getSpawnPosition) {
       pendingPhoto = null
     }
 
+    takeSnapshot() // saved: the form is clean again
     return saved
   }
 
-  return { form, errors, isEditing, reset, loadMember, submit, setPendingPhoto }
+  return { form, errors, isEditing, isDirty, reset, loadMember, submit, setPendingPhoto }
 }

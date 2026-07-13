@@ -15,6 +15,7 @@ import MapControls from './MapControls.vue'
 import SearchBar from '@/features/search/components/SearchBar.vue'
 import MemberDetailPanel from '@/features/family/components/MemberDetailPanel.vue'
 import MemberFormModal from '@/features/family/components/MemberFormModal.vue'
+import ImportMembersModal from '@/features/family/components/ImportMembersModal.vue'
 import ExportModal from './ExportModal.vue'
 import SettingsPanel from '@/features/settings/components/SettingsPanel.vue'
 import BaseButton from '@/shared/components/ui/BaseButton.vue'
@@ -46,6 +47,7 @@ function onArrange() {
 }
 
 const formOpen = ref(false)
+const importOpen = ref(false)
 const exportOpen = ref(false)
 const settingsOpen = ref(false)
 const editingMember = ref(null) // null → create mode
@@ -119,6 +121,7 @@ function getSpawnPosition() {
             :saving="saving"
             :save-error="saveError"
             @add="openCreate"
+            @import="importOpen = true"
             @zoom-in="map?.zoomIn()"
             @zoom-out="map?.zoomOut()"
             @fit="fitAll()"
@@ -178,6 +181,11 @@ function getSpawnPosition() {
       :get-spawn-position="getSpawnPosition"
       @close="formOpen = false"
       @saved="onSaved"
+    />
+    <ImportMembersModal
+      :open="importOpen"
+      @close="importOpen = false"
+      @imported="fitAll()"
     />
     <ExportModal :open="exportOpen" @close="exportOpen = false" />
     <SettingsPanel :open="settingsOpen" @close="settingsOpen = false" />

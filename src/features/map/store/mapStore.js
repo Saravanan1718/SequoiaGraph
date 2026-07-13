@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref } from 'vue'
 import { useFamilyStore } from '@/features/family/store/familyStore'
+import { resolveRelationship } from '@/features/family/services/relationshipResolver'
 
 /** Presentation-only state: selection, highlight, fly-to requests. No domain data. */
 export const useMapStore = defineStore('map', () => {
@@ -19,6 +20,25 @@ export const useMapStore = defineStore('map', () => {
     selectedId.value ? family.memberById(selectedId.value) : null,
   )
 
+  // viewpoint member for derived kinship labels ("Grandmother of …")
+  const referenceId = ref(null)
+  const referenceMember = computed(() =>
+    referenceId.value ? family.memberById(referenceId.value) : null,
+  )
+
+  function setReference(id) {
+    referenceId.value = id
+  }
+
+  /** Derived relationship of `memberId` to the reference member, or null. */
+  function relationTo(memberId) {
+    if (!referenceId.value) return null
+    return resolveRelationship(referenceId.value, memberId, {
+      members: family.membersArray,
+      relationships: family.relationshipsArray,
+    })
+  }
+
   function select(id) {
     selectedId.value = id
   }
@@ -35,6 +55,10 @@ export const useMapStore = defineStore('map', () => {
   return {
     selectedId,
     selectedMember,
+    referenceId,
+    referenceMember,
+    setReference,
+    relationTo,
     highlightedIds,
     flyToRequest,
     select,

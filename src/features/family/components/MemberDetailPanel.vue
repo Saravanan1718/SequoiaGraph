@@ -5,6 +5,7 @@ import BaseButton from '@/shared/components/ui/BaseButton.vue'
 import BaseConfirm from '@/shared/components/ui/BaseConfirm.vue'
 import RelationshipEditor from './RelationshipEditor.vue'
 import { useFamilyStore } from '../store/familyStore'
+import { useMapStore } from '@/features/map/store/mapStore'
 import { edgeLabelFor } from '../utils/kinship'
 import { lifespan, age } from '@/shared/utils/date'
 
@@ -14,7 +15,14 @@ const props = defineProps({
 const emit = defineEmits(['edit', 'close', 'deleted', 'navigate'])
 
 const family = useFamilyStore()
+const map = useMapStore()
 const confirmDelete = ref(false)
+
+const isReference = computed(() => map.referenceId === props.member.id)
+/** Derived kinship label relative to the chosen viewpoint member. */
+const kinshipLabel = computed(() =>
+  map.referenceId && !isReference.value ? map.relationTo(props.member.id) : null,
+)
 
 const life = computed(() => lifespan(props.member.birthDate, props.member.deathDate))
 const years = computed(() => age(props.member.birthDate, props.member.deathDate))
@@ -71,6 +79,33 @@ function onDelete() {
         </svg>
       </button>
     </div>
+
+    <!-- derived relationship to the viewpoint member -->
+    <div
+      v-if="map.referenceId"
+      class="flex items-center justify-between gap-2 rounded-lg bg-indigo-50 px-2.5 py-1.5 text-sm dark:bg-indigo-950/40"
+    >
+      <span v-if="isReference" class="text-indigo-700 dark:text-indigo-300">
+        Viewpoint — relationships are shown relative to {{ member.name }}
+      </span>
+      <span v-else class="min-w-0 truncate text-indigo-700 dark:text-indigo-300">
+        <strong>{{ kinshipLabel ?? 'No known relation' }}</strong>
+        of {{ map.referenceMember?.name }}
+      </span>
+      <button
+        class="shrink-0 text-xs text-indigo-500 hover:underline dark:text-indigo-400"
+        @click="map.setReference(isReference ? null : member.id)"
+      >
+        {{ isReference ? 'Clear' : 'Set as viewpoint' }}
+      </button>
+    </div>
+    <button
+      v-else
+      class="self-start text-xs text-indigo-600 hover:underline dark:text-indigo-400"
+      @click="map.setReference(member.id)"
+    >
+      Show relationships relative to {{ member.name }}
+    </button>
 
     <dl class="space-y-1 text-sm">
       <div v-if="member.occupation" class="flex gap-2">

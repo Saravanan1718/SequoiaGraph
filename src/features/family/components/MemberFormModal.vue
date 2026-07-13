@@ -1,6 +1,8 @@
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, onBeforeUnmount } from 'vue'
+import { onBeforeRouteLeave } from 'vue-router'
 import BaseModal from '@/shared/components/ui/BaseModal.vue'
+import UnsavedChangesDialog from '@/shared/components/ui/UnsavedChangesDialog.vue'
 import BaseButton from '@/shared/components/ui/BaseButton.vue'
 import BaseField from '@/shared/components/ui/BaseField.vue'
 import BaseInput from '@/shared/components/ui/BaseInput.vue'
@@ -18,19 +20,98 @@ const props = defineProps({
 })
 const emit = defineEmits(['close', 'saved'])
 
-const { form, errors, isEditing, reset, loadMember, submit, setPendingPhoto } =
+const { form, errors, isEditing, isDirty, reset, loadMember, submit, setPendingPhoto } =
   useMemberForm(() => props.getSpawnPosition?.() ?? { x: 0, y: 0 })
 
 const saving = ref(false)
 
+function loadCurrent() {
+  if (props.member) loadMember(props.member)
+  else reset()
+}
+
 watch(
   () => props.open,
   (open) => {
-    if (!open) return
-    if (props.member) loadMember(props.member)
-    else reset()
+    if (open) loadCurrent()
   },
 )
+
+// switching to another member while the form is open goes through the guard
+watch(
+  () => props.member,
+  () => {
+    if (props.open) guard(loadCurrent)
+  },
+)
+
+// --- unsaved-changes guard --------------------------------------------------
+const confirmOpen = ref(false)
+let pending = null // { proceed, abort } for the action awaiting the user's choice
+
+/** Run `proceed` immediately when clean, otherwise ask first. */
+function guard(proceed, abort = () => {}) {
+  if (!isDirty.value) return proceed()
+  pending = { proceed, abort }
+  confirmOpen.value = true
+}
+
+function requestClose() {
+  guard(() => emit('close'))
+}
+
+function settle(run) {
+  const action = pending
+  pending = null
+  confirmOpen.value = false
+  if (action) run(action)
+}
+
+async function onDialogSave() {
+  if (saving.value) return
+  saving.value = true
+  try {
+    const saved = await submit()
+    if (!saved) return settle((a) => a.abort()) // validation failed → stay and fix
+    emit('saved', saved)
+    settle((a) => a.proceed())
+  } finally {
+    saving.value = false
+  }
+}
+
+function onDialogDiscard() {
+  reset()
+  settle((a) => a.proceed())
+}
+
+function onDialogCancel() {
+  settle((a) => a.abort())
+}
+
+// browser refresh / tab close — the native prompt is all browsers allow here
+function onBeforeUnload(e) {
+  if (props.open && isDirty.value) {
+    e.preventDefault()
+    e.returnValue = ''
+  }
+}
+window.addEventListener('beforeunload', onBeforeUnload)
+onBeforeUnmount(() => window.removeEventListener('beforeunload', onBeforeUnload))
+
+// in-app navigation (e.g. back to the tree list)
+onBeforeRouteLeave(() => {
+  if (!props.open || !isDirty.value) return true
+  return new Promise((resolve) => {
+    guard(
+      () => {
+        emit('close')
+        resolve(true)
+      },
+      () => resolve(false),
+    )
+  })
+})
 
 const genderOptions = [
   { value: 'female', label: 'Female' },
@@ -54,7 +135,7 @@ async function onSubmit() {
 </script>
 
 <template>
-  <BaseModal :open="open" :title="isEditing ? 'Edit member' : 'Add member'" @close="emit('close')">
+  <BaseModal :open="open" :title="isEditing ? 'Edit member' : 'Add member'" @close="requestClose">
     <form class="space-y-3" @submit.prevent="onSubmit">
       <BaseField label="Name" :error="errors.name">
         <BaseInput v-model="form.name" placeholder="Full name" />
@@ -91,11 +172,18 @@ async function onSubmit() {
       </BaseField>
 
       <div class="flex justify-end gap-2 pt-2">
-        <BaseButton variant="secondary" :disabled="saving" @click="emit('close')">Cancel</BaseButton>
+        <BaseButton variant="secondary" :disabled="saving" @click="requestClose">Cancel</BaseButton>
         <BaseButton type="submit" :disabled="saving">
           {{ saving ? 'Saving…' : isEditing ? 'Save changes' : 'Add member' }}
         </BaseButton>
       </div>
     </form>
+
+    <UnsavedChangesDialog
+      :open="confirmOpen"
+      @save="onDialogSave"
+      @discard="onDialogDiscard"
+      @cancel="onDialogCancel"
+    />
   </BaseModal>
 </template>

@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, watch } from 'vue'
+import { useEscapeStack } from '@/shared/composables/useEscapeStack'
 
 const props = defineProps({
   open: { type: Boolean, required: true },
@@ -7,17 +7,10 @@ const props = defineProps({
 })
 const emit = defineEmits(['close'])
 
-function onKeydown(e) {
-  if (e.key === 'Escape') emit('close')
-}
-watch(
+useEscapeStack(
   () => props.open,
-  (open) => {
-    if (open) window.addEventListener('keydown', onKeydown)
-    else window.removeEventListener('keydown', onKeydown)
-  },
+  () => emit('close'),
 )
-onBeforeUnmount(() => window.removeEventListener('keydown', onKeydown))
 </script>
 
 <template>
