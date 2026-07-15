@@ -1,4 +1,4 @@
-import { PARENT_LIKE, parentsOf, spousesOf } from '@/features/family/utils/kinship'
+import { PARENT_LIKE, parentsOf, spousesOf, childrenOf } from '@/features/family/utils/kinship'
 
 /**
  * Canvas layout. Users can always drag nodes afterwards — these functions
@@ -59,8 +59,10 @@ export function positionRelativeTo(rel, newcomerId, members) {
  * Full generational layout of the whole graph:
  *  1. depth = longest parent-chain above a member; couples aligned to the
  *     deeper partner so spouses share a row.
- *  2. Couples are laid out as one unit; rows are placed top-down, each
- *     member pulled toward the midpoint of its parents, then de-overlapped.
+ *  2. Pass 1 (Top-down): Pull each unit towards its parents' midpoint, de-overlap
+ *     units on each row, and center the entire row to avoid drift.
+ *  3. Pass 2 (Bottom-up): Centering parent units horizontally over the midpoint of
+ *     their children, de-overlapping, and centering.
  *
  * @param {import('@/shared/types/typedefs').Member[]} members
  * @param {import('@/shared/types/typedefs').Relationship[]} relationships
@@ -110,11 +112,57 @@ export function autoLayout(members, relationships) {
   const rowDepths = [...rows.keys()].sort((a, b) => a - b)
   const byId = new Map(members.map((m) => [m.id, m]))
 
+  // Helper function to arrange a single row with de-overlapping and centering
+  function arrangeRow(units, y, getDesiredX) {
+    if (units.length === 0) return
+
+    for (const unit of units) {
+      unit.desiredX = getDesiredX(unit)
+    }
+
+    // Sort by desiredX
+    units.sort((a, b) => a.desiredX - b.desiredX)
+
+    // De-overlap left-to-right
+    let cursor = -Infinity
+    const tempPositions = new Map()
+    for (const unit of units) {
+      const width = (unit.ids.length - 1) * SIBLING_GAP
+      let startX = unit.desiredX - width / 2
+      if (startX < cursor) startX = cursor
+      unit.ids.forEach((id, i) => {
+        tempPositions.set(id, startX + i * SIBLING_GAP)
+      })
+      cursor = startX + width + SIBLING_GAP
+    }
+
+    // Shift row so that its average actual position aligns with its average desired position.
+    // This centers the row and prevents the entire row from drifting to the right.
+    const desiredSum = units.reduce((sum, u) => sum + u.desiredX, 0)
+    const averageDesired = desiredSum / units.length
+
+    const actualSum = units.reduce((sum, u) => {
+      const unitActualX = u.ids.reduce((s, id) => s + tempPositions.get(id), 0) / u.ids.length
+      return sum + unitActualX
+    }, 0)
+    const averageActual = actualSum / units.length
+
+    const shift = averageDesired - averageActual
+
+    // Commit final positions
+    for (const unit of units) {
+      unit.ids.forEach((id) => {
+        positions.set(id, { x: tempPositions.get(id) + shift, y })
+      })
+    }
+  }
+
+  // Pass 1: Top-down layout (parent-driven)
   for (const d of rowDepths) {
     const units = rows.get(d)
     const y = d * GENERATION_GAP
 
-    for (const unit of units) {
+    arrangeRow(units, y, (unit) => {
       // pull toward parents' midpoint; fall back to current position so an
       // already-arranged (or user-dragged) order is respected as a tiebreak
       const anchors = unit.ids.flatMap((id) =>
@@ -122,21 +170,37 @@ export function autoLayout(members, relationships) {
           .map((pid) => positions.get(pid)?.x)
           .filter((x) => x !== undefined),
       )
-      unit.desiredX = anchors.length
+      return anchors.length
         ? anchors.reduce((a, b) => a + b, 0) / anchors.length
         : unit.ids.reduce((a, id) => a + (byId.get(id)?.posX ?? 0), 0) / unit.ids.length
-    }
+    })
+  }
 
-    // de-overlap: sort by desired x, then enforce minimum spacing
-    units.sort((a, b) => a.desiredX - b.desiredX)
-    let cursor = -Infinity
-    for (const unit of units) {
-      const width = (unit.ids.length - 1) * SIBLING_GAP
-      let startX = unit.desiredX - width / 2
-      if (startX < cursor) startX = cursor
-      unit.ids.forEach((id, i) => positions.set(id, { x: startX + i * SIBLING_GAP, y }))
-      cursor = startX + width + SIBLING_GAP
-    }
+  // Pass 2: Bottom-up layout (child-driven centering)
+  // Re-adjust row positions starting from second-to-last row up to roots.
+  const reversedDepths = [...rowDepths].reverse().slice(1) // exclude the leaf-most row
+  for (const d of reversedDepths) {
+    const units = rows.get(d)
+    const y = d * GENERATION_GAP
+
+    arrangeRow(units, y, (unit) => {
+      const childrenIds = new Set()
+      for (const id of unit.ids) {
+        for (const cid of childrenOf(id, relationships)) {
+          childrenIds.add(cid)
+        }
+      }
+      if (childrenIds.size > 0) {
+        const childCoords = [...childrenIds]
+          .map((cid) => positions.get(cid)?.x)
+          .filter((x) => x !== undefined)
+        if (childCoords.length > 0) {
+          return childCoords.reduce((a, b) => a + b, 0) / childCoords.length
+        }
+      }
+      // Fallback: keep position computed in Pass 1
+      return unit.ids.reduce((a, id) => a + (positions.get(id)?.x ?? byId.get(id)?.posX ?? 0), 0) / unit.ids.length
+    })
   }
 
   return positions
